@@ -1,0 +1,45 @@
+name: Terraform CI
+
+on:
+  push:
+    paths:
+      - 'main/**/*.tf'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'main/**/*.tf'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the workflow on'
+        required: true
+        default: 'main'
+
+env:
+  TF_ROOT: ./main
+
+jobs:
+  validation:
+    name: Terraform Check Format & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init -backend=false
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform validate
