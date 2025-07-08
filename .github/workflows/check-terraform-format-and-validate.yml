@@ -2,6 +2,8 @@ name: Check Terraform Format & Validate
 
 on:
   push:
+    branches-ignore:
+      - 'main'
     paths:
       - 'main/**/*.tf'
       - '.github/workflows/ci.yml'

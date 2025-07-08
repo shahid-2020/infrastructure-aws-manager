@@ -29,17 +29,25 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR SHA from Merge Commit
+        id: get-pr-sha
+        run: |
+          PR_SHA=$(git log -1 --pretty=format:%P ${{ github.sha }} | awk '{print $1}')
+          echo "pr_sha=${PR_SHA}" >> $GITHUB_OUTPUT
+
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-plan-${{ github.sha }}
-          path: ${{ env.TF_ROOT }}/plans
+          name: terraform-plan-${{ steps.get-pr-sha.outputs.pr_sha }}
 
       - name: Terraform Init
         working-directory: ${{ env.TF_ROOT }}
         run: terraform init
         
-      - name: Apply Terraform Plan
-        working-directory: ${{ env.TF_ROOT }}
-        run: |
-          terraform apply -auto-approve plans/plan_${{ github.sha }}.tfplan
+      - name: Apply Terraform
+        run: terraform apply -auto-approve plans/plan_${{ steps.get-pr-sha.outputs.pr_sha }}.tfplan
