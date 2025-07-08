@@ -31,23 +31,15 @@ jobs:
 
       - name: Checkout with full history
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get PR SHA from Merge Commit
-        id: get-pr-sha
-        run: |
-          PR_SHA=$(git log -1 --pretty=format:%P ${{ github.sha }} | awk '{print $1}')
-          echo "pr_sha=${PR_SHA}" >> $GITHUB_OUTPUT
 
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-plan-${{ steps.get-pr-sha.outputs.pr_sha }}
+          name: terraform-plan
 
       - name: Terraform Init
         working-directory: ${{ env.TF_ROOT }}
         run: terraform init
         
       - name: Apply Terraform
-        run: terraform apply -auto-approve plans/plan_${{ steps.get-pr-sha.outputs.pr_sha }}.tfplan
+        run: terraform apply -auto-approve plans/changes.tfplan
