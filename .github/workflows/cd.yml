@@ -1,0 +1,111 @@
+name: Terraform CD
+
+on:
+  push:
+    paths:
+      - 'main/**/*.tf'
+      - '.github/workflows/cd.yml'
+  pull_request:
+    paths:
+      - 'main/**/*.tf'
+      - '.github/workflows/cd.yml'
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  TF_ROOT: ./main
+
+jobs:
+  plan:
+    name: Terraform Plan
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init
+      
+      - name: Generate Terraform Plan
+        id: plan
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          mkdir -p ./plans
+          plan_file="plans/plan_${{ github.sha }}.tfplan"
+          terraform plan -var="github_project_url=https://github.com/${{ github.repository }}" -out=$plan_file
+          terraform show -no-color $plan_file > ${plan_file}.txt
+          echo "plan_file=${plan_file}" >> $GITHUB_OUTPUT
+          echo "plan_file_txt=${plan_file}.txt" >> $GITHUB_OUTPUT
+          
+      - name: Upload Plan Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: |
+            ${{ env.TF_ROOT }}/plans/plan_${{ github.sha }}.tfplan
+            ${{ env.TF_ROOT }}/plans/plan_${{ github.sha }}.tfplan.txt
+          retention-days: 1
+
+      - name: Post Plan as PR Comment
+        uses: actions/github-script@v7
+        env:
+          PLAN_FILE: ${{ env.TF_ROOT }}/plans/plan_${{ github.sha }}.tfplan.txt
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const planContent = fs.readFileSync(process.env.PLAN_FILE, 'utf8');
+              const planOutput = `#### Terraform Plan for ${process.env.GITHUB_SHA}
+              \`\`\`\n${planContent}\`\`\`
+              Binary plan file: plan_${process.env.GITHUB_SHA}.tfplan`;
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: planOutput
+              });
+            } catch (error) {
+              console.error('Error posting comment:', error);
+              core.setFailed('Failed to post plan comment');
+            }
+
+  apply:
+    name: Terraform Apply
+    needs: plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: ${{ env.TF_ROOT }}/plans
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init
+        
+      - name: Apply Terraform Plan
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          terraform apply -auto-approve plans/plan_${{ github.sha }}.tfplan
