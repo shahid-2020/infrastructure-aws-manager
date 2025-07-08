@@ -1,4 +1,4 @@
-name: Terraform CI
+name: Check Terraform Format & Validate
 
 on:
   push:

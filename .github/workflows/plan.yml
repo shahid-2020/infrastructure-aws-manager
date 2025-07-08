@@ -1,14 +1,19 @@
-name: Terraform CD
+name: Plan Terraform Changes
 
 on:
-  push:
-    paths:
-      - 'main/**/*.tf'
-      - '.github/workflows/cd.yml'
   pull_request:
+    branches:
+      - main
     paths:
       - 'main/**/*.tf'
       - '.github/workflows/cd.yml'
+  
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the workflow on'
+        required: true
+        default: 'main'
 
 concurrency:
   group: ${{ github.workflow }}
@@ -27,7 +32,6 @@ env:
 jobs:
   plan:
     name: Terraform Plan
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -82,30 +86,3 @@ jobs:
               console.error('Error posting comment:', error);
               core.setFailed('Failed to post plan comment');
             }
-
-  apply:
-    name: Terraform Apply
-    needs: plan
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Download Plan Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan-${{ github.sha }}
-          path: ${{ env.TF_ROOT }}/plans
-
-      - name: Terraform Init
-        working-directory: ${{ env.TF_ROOT }}
-        run: terraform init
-        
-      - name: Apply Terraform Plan
-        working-directory: ${{ env.TF_ROOT }}
-        run: |
-          terraform apply -auto-approve plans/plan_${{ github.sha }}.tfplan
