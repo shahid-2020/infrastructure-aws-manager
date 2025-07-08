@@ -2,15 +2,17 @@ name: Check Terraform Format & Validate
 
 on:
   push:
+    branches-ignore:
+      - main
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/check-terraform-format-and-validate.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/check-terraform-format-and-validate.yml'
   workflow_dispatch:
     inputs:
       branch:
