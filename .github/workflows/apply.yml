@@ -1,0 +1,45 @@
+name: Apply Terraform Changes
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'main/**/*.tf'
+      - '.github/workflows/cd.yml'
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+  TF_ROOT: ./main
+
+jobs:
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: ${{ env.TF_ROOT }}/plans
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init
+        
+      - name: Apply Terraform Plan
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          terraform apply -auto-approve plans/plan_${{ github.sha }}.tfplan
