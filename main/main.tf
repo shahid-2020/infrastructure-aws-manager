@@ -33,17 +33,17 @@ module "igw" {
   }
 }
 
-module "nat_gateway" {
-  source = "./modules/nat-gateway"
+# module "nat_gateway" {
+#   source = "./modules/nat-gateway"
 
-  subnet_id = module.public_subnets.ids[0]
+#   subnet_id = module.public_subnets.ids[0]
 
-  tags = {
-    Name = "main-nat-gateway"
-  }
+#   tags = {
+#     Name = "main-nat-gateway"
+#   }
 
-  depends_on = [module.igw]
-}
+#   depends_on = [module.igw]
+# }
 
 module "public_route_table" {
   source = "./modules/route-table"
@@ -97,8 +97,8 @@ module "private_route_table" {
   vpc_cidr_block = module.vpc.cidr_block
 
   additional_routes = [{
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = module.nat_gateway.id
+    cidr_block = "0.0.0.0/0"
+    # nat_gateway_id = module.nat_gateway.id
   }]
 
   tags = {
