@@ -1,4 +1,4 @@
-name: Apply Terraform Changes
+name: Terraform Apply
 
 on:
   push:

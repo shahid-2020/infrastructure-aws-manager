@@ -1,4 +1,4 @@
-name: Plan Terraform Changes
+name: Terraform PR Plan
 
 on:
   pull_request:
