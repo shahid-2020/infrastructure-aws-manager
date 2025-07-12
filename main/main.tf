@@ -263,6 +263,12 @@ module "security_group_ingress_5432_ingress" {
   cidr_ipv6           = "::/0"
 }
 
+module "domain" {
+  source = "./modules/route53"
+
+  name = "codlr.store"
+}
+
 module "ecs_cluster_staging" {
   source = "./modules/ecs-cluster"
 
