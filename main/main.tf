@@ -96,10 +96,10 @@ module "private_route_table" {
   vpc_id         = module.vpc.id
   vpc_cidr_block = module.vpc.cidr_block
 
-  additional_routes = [{
-    cidr_block = "0.0.0.0/0"
-    # nat_gateway_id = module.nat_gateway.id
-  }]
+  # additional_routes = [{
+  #   cidr_block = "0.0.0.0/0"
+  #   nat_gateway_id = module.nat_gateway.id
+  # }]
 
   tags = {
     Name = "main-private-route-table"
