@@ -96,10 +96,10 @@ module "private_route_table" {
   vpc_id         = module.vpc.id
   vpc_cidr_block = module.vpc.cidr_block
 
-  additional_routes = [{
-    cidr_block = "0.0.0.0/0"
-    # nat_gateway_id = module.nat_gateway.id
-  }]
+  # additional_routes = [{
+  #   cidr_block = "0.0.0.0/0"
+  #   nat_gateway_id = module.nat_gateway.id
+  # }]
 
   tags = {
     Name = "main-private-route-table"
@@ -261,12 +261,6 @@ module "security_group_ingress_5432_ingress" {
   ip_protocol         = "TCP"
   cidr_ipv4           = "0.0.0.0/0"
   cidr_ipv6           = "::/0"
-}
-
-module "domain" {
-  source = "./modules/route53"
-
-  name = "codlr.store"
 }
 
 module "ecs_cluster_staging" {
