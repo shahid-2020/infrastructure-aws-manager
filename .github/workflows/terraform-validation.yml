@@ -6,13 +6,13 @@ on:
       - main
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/check-terraform-format-and-validate.yml'
+      - '.github/workflows/terraform-validation.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/check-terraform-format-and-validate.yml'
+      - '.github/workflows/terraform-validation.yml'
   workflow_dispatch:
     inputs:
       branch:

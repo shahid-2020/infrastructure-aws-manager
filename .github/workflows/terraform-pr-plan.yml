@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/plan.yml'
+      - '.github/workflows/terraform-pr-plan.yml'
   
   workflow_dispatch:
     inputs:
