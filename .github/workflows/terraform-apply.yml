@@ -6,7 +6,7 @@ on:
       - 'main'
     paths:
       - 'main/**/*.tf'
-      - '.github/workflows/apply.yml'
+      - '.github/workflows/terraform-apply.yml'
 
 concurrency:
   group: ${{ github.workflow }}
