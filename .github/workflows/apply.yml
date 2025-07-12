@@ -19,8 +19,8 @@ env:
   TF_ROOT: ./main
 
 jobs:
-  apply:
-    name: Terraform Apply
+  plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -29,17 +29,70 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Checkout with full history
+      - name: Terraform Init
+        working-directory: ${{ env.TF_ROOT }}
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          mkdir -p ./plans
+          plan_file="plans/changes-$(date +%s).tfplan"
+          terraform plan \
+            -var="github_project_url=https://github.com/${{ github.repository }}" \
+            -out=$plan_file \
+            -no-color \
+            -input=false
+          terraform show -no-color $plan_file > ${plan_file}.txt
+          echo "plan_file=${plan_file}" >> $GITHUB_OUTPUT
+          echo "plan_file_txt=${plan_file}.txt" >> $GITHUB_OUTPUT
+          
+      - name: Upload Plan Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: |
+            ${{ env.TF_ROOT }}/plans/*.tfplan
+            ${{ env.TF_ROOT }}/plans/*.tfplan.txt
+          retention-days: 1
+
+  apply:
+    name: Terraform Apply
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Download Plan Artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-plan
+          name: terraform-plan-${{ github.sha }}
 
       - name: Terraform Init
         working-directory: ${{ env.TF_ROOT }}
-        run: terraform init
+        run: terraform init -input=false
         
-      - name: Apply Terraform
-        run: terraform apply -auto-approve plans/changes.tfplan
+      - name: Verify Plan Freshness
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          PLAN_FILE=$(find plans/ -name "*.tfplan" -type f | head -1)
+          OLD_PLAN_ID=$(terraform show -json "$PLAN_FILE" | jq -r '.terraform_plan_id')
+          NEW_PLAN_ID=$(terraform plan -no-color -input=false -json | jq -r '.terraform_plan_id')
+          
+          if [ "$OLD_PLAN_ID" != "$NEW_PLAN_ID" ]; then
+            echo "::error::Plan ID mismatch - stale plan detected"
+            echo "Old Plan ID: $OLD_PLAN_ID"
+            echo "New Plan ID: $NEW_PLAN_ID"
+            exit 1
+          fi
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_ROOT }}
+        run: |
+          latest_plan=$(ls -t plans/*.tfplan | head -1)
+          terraform apply -input=false -auto-approve $latest_plan
