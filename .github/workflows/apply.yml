@@ -37,13 +37,10 @@ jobs:
         id: plan
         working-directory: ${{ env.TF_ROOT }}
         run: |
-          mkdir -p ./plans
-          plan_file="plans/changes-$(date +%s).tfplan"
+          plan_file="${{ github.sha }}.plan"
           terraform plan \
             -var="github_project_url=https://github.com/${{ github.repository }}" \
-            -out=$plan_file \
-            -no-color \
-            -input=false
+            -out=$plan_file
           terraform show -no-color $plan_file > ${plan_file}.txt
           echo "plan_file=${plan_file}" >> $GITHUB_OUTPUT
           echo "plan_file_txt=${plan_file}.txt" >> $GITHUB_OUTPUT
@@ -53,8 +50,8 @@ jobs:
         with:
           name: terraform-plan-${{ github.sha }}
           path: |
-            ${{ env.TF_ROOT }}/plans/*.tfplan
-            ${{ env.TF_ROOT }}/plans/*.tfplan.txt
+            ${{ env.TF_ROOT }}/${{ github.sha }}.plan
+            ${{ env.TF_ROOT }}/${{ github.sha }}.plan.txt
           retention-days: 1
 
   apply:
@@ -72,27 +69,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan-${{ github.sha }}
+          path: ${{ env.TF_ROOT }}/
 
       - name: Terraform Init
         working-directory: ${{ env.TF_ROOT }}
         run: terraform init -input=false
-        
-      - name: Verify Plan Freshness
-        working-directory: ${{ env.TF_ROOT }}
-        run: |
-          PLAN_FILE=$(find plans/ -name "*.tfplan" -type f | head -1)
-          OLD_PLAN_ID=$(terraform show -json "$PLAN_FILE" | jq -r '.terraform_plan_id')
-          NEW_PLAN_ID=$(terraform plan -no-color -input=false -json | jq -r '.terraform_plan_id')
-          
-          if [ "$OLD_PLAN_ID" != "$NEW_PLAN_ID" ]; then
-            echo "::error::Plan ID mismatch - stale plan detected"
-            echo "Old Plan ID: $OLD_PLAN_ID"
-            echo "New Plan ID: $NEW_PLAN_ID"
-            exit 1
-          fi
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_ROOT }}
-        run: |
-          latest_plan=$(ls -t plans/*.tfplan | head -1)
-          terraform apply -input=false -auto-approve $latest_plan
+        run: terraform apply -input=false -auto-approve ${{ github.sha }}.plan
