@@ -42,31 +42,42 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TF_ROOT }}
-        run: terraform init
-      
+        run: terraform init -input=false
+
       - name: Generate Terraform Plan
         id: plan
         working-directory: ${{ env.TF_ROOT }}
         run: |
-          mkdir -p ./plans
-          plan_file="plans/changes.tfplan"
-          terraform plan -var="github_project_url=https://github.com/${{ github.repository }}" -out=$plan_file
+          plan_file="plan_${{github.sha}}.tfplan"
+          terraform plan \
+            -var="github_project_url=https://github.com/${{ github.repository }}" \
+            -out=$plan_file \
+            -no-color \
+            -input=false
           terraform show -no-color $plan_file > ${plan_file}.txt
           echo "plan_file=${plan_file}" >> $GITHUB_OUTPUT
           echo "plan_file_txt=${plan_file}.txt" >> $GITHUB_OUTPUT
           
+
       - name: Post Plan as PR Comment
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
-          PLAN_FILE: ${{ env.TF_ROOT }}/plans/changes.tfplan.txt
+          PLAN_TEXT_FILE: "${{ env.TF_ROOT }}/plan_${{github.sha}}.tfplan.txt"
         with:
           script: |
             const fs = require('fs');
             try {
-              const planContent = fs.readFileSync(process.env.PLAN_FILE, 'utf8');
-              const planOutput = `#### Terraform Plan for ${process.env.GITHUB_SHA}
-              \`\`\`\n${planContent}\`\`\`
-              Binary plan file: plan_${process.env.GITHUB_SHA}.tfplan`;
+              const planText = fs.readFileSync(process.env.PLAN_TEXT_FILE, 'utf8');
+              const planOutput = `### Terraform Plan \`${{ github.sha }}\`
+              <details>
+              <summary>Show Plan</summary>
+              
+              \`\`\`diff\n${planText}\n\`\`\`
+              </details>
+              
+              *Binary plan file available as workflow artifact*`;
+              
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
