@@ -1,23 +1,53 @@
-# AWS Manager (Global Infrastructure Management)
+# AWS Global Infrastructure Manager
 
-This Terraform project is responsible for managing **global infrastructure** resources, which may include networking, compute, storage, security, and other foundational components. The project focuses on creating and managing resources that are globally applicable and not tied to any specific environment or project.
+![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 
-## Important Notes
+This Terraform project manages **global AWS infrastructure** components that serve as foundational resources across all environments and projects.
 
-- **No environment-specific management**: This project **does not** maintain or manage resources for specific environments such as `test`, `staging`, or `production`. Instead, it manages global infrastructure components that are shared across environments.
-- **Flexible Scope**: The scope of the project is not limited to networking but can include any resource that forms part of the global infrastructure.
-- **Future Enhancements**: IPv6 support is not implemented at this time but is planned for future iterations.
+## Key Characteristics
 
-## Required CI/CD Variables
+🌍 **Global Scope**  
+- Manages shared infrastructure resources
+- Not tied to specific environments (dev/stage/prod)
+- May include networking, security, logging, and other cross-cutting concerns
 
-The following variables must be configured in the CI/CD pipeline for successful deployment:
+⚡ **Current Features**
+- Core global infrastructure components
+- Multi-region support
+- Centralized networking foundations
 
-| Variable Name              | Visibility | Description                               |
-|----------------------------|------------|-------------------------------------------|
-| `AWS_ACCESS_KEY_ID`         | Expanded   | AWS Access Key ID for authentication      |
-| `AWS_DEFAULT_REGION`        | Expanded   | Default AWS Region                        |
-| `AWS_SECRET_ACCESS_KEY`     | Masked     | AWS Secret Access Key for authentication  |
-| `TF_HTTP_PASSWORD`          | Masked     | Password for Terraform backend            |
-| `TF_HTTP_USERNAME`          | Expanded   | Username for Terraform backend            |
+🚧 **Planned Enhancements**
+- IPv6 support (coming soon)
+- Additional global services integration
+- Enhanced security controls
 
-Ensure that these variables are properly set in the CI environment.
+## CI/CD Pipeline
+
+### Workflow Structure
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| [Terraform Validation](.github/workflows/terraform-validation.yml) | On every PR/push | Validates syntax and formatting |
+| [PR Plan](.github/workflows/terraform-pr-plan.yml) | PRs to main | Shows planned changes |
+| [Apply Changes](.github/workflows/terraform-apply.yml) | Merge to main | Deploys infrastructure |
+
+### Required Secrets
+
+These secrets must be configured in your CI/CD environment:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `AWS_ACCESS_KEY_ID` | AWS IAM Access Key | AKIAXXXXXXXXXXXXXXXX |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM Secret Key | **************************************** |
+| `AWS_DEFAULT_REGION` | Default AWS Region | us-east-1 |
+
+## Usage Guidelines
+
+### Local Development
+
+1. Clone the repository
+2. Initialize Terraform:
+   ```bash
+   cd main
+   terraform init
