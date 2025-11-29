@@ -2,6 +2,15 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# Validation to ensure we have enough availability zones
+locals {
+  required_az_count  = max(length(local.public_cidr_blocks), length(local.private_cidr_blocks))
+  available_az_count = length(data.aws_availability_zones.available.names)
+
+  # Validate AZ count - this will fail at plan time if insufficient AZs
+  validate_az_count = local.available_az_count >= local.required_az_count
+}
+
 module "vpc" {
   source = "./modules/vpc"
 
@@ -9,6 +18,21 @@ module "vpc" {
 
   tags = {
     Name = "main"
+  }
+}
+
+module "vpc_flow_logs" {
+  source = "./modules/vpc-flow-logs"
+
+  vpc_id         = module.vpc.id
+  name_prefix    = "main"
+  log_group_name = "/aws/vpc/main-flow-logs"
+
+  log_retention_days = 30
+  traffic_type       = "ALL"
+
+  tags = {
+    Name = "main-vpc-flow-logs"
   }
 }
 

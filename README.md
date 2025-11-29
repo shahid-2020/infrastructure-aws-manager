@@ -29,24 +29,35 @@ This Terraform project manages **global AWS infrastructure** components that ser
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | [Terraform Validation](.github/workflows/terraform-validation.yml) | On every PR/push | Validates syntax and formatting |
-| [PR Plan](.github/workflows/terraform-pr-plan.yml) | PRs to main | Shows planned changes |
-| [Apply Changes](.github/workflows/terraform-apply.yml) | Merge to main | Deploys infrastructure |
+| [Terraform Plan](.github/workflows/terraform-pr-plan.yml) | On PRs to main | Shows planned changes |
+| [Terraform Apply](.github/workflows/terraform-apply.yml) | After merge to main | Automatically deploys infrastructure |
 
 ### Required Secrets
 
-These secrets must be configured in your CI/CD environment:
+Configure these secrets in your GitHub repository settings:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `AWS_ACCESS_KEY_ID` | AWS IAM Access Key | AKIAXXXXXXXXXXXXXXXX |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM Secret Key | **************************************** |
-| `AWS_DEFAULT_REGION` | Default AWS Region | us-east-1 |
+| Variable | Description | Required For |
+|----------|-------------|--------------|
+| `AWS_ACCESS_KEY_ID` | AWS IAM Access Key | Plan & Apply workflows |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM Secret Key | Plan & Apply workflows |
+| `TERRAFORM_BACKEND_BUCKET` | S3 bucket for Terraform state | Plan & Apply workflows |
+
+### Pipeline Flow
+
+```
+PR Created → Validation → Plan → Review → Merge to Main → Apply
+```
 
 ## Usage Guidelines
 
 ### Local Development
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone git@personal.github.com:shahid-2020/infrastructure-aws-manager.git
+   cd infrastructure-aws-manager
+   ```
+
 2. Initialize Terraform:
    ```bash
    cd main
